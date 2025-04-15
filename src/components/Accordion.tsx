@@ -17,6 +17,7 @@ interface AccordionProps {
 function Accordion({ data, onDelete }: AccordionProps) {
     const [openItemId, setOpenItemId] = useState<number | null>(null);
     const [copiedItemId, setCopiedItemId] = useState<number | null>(null);
+    const [sortedData, setSortedData] = useState<AccordionItem[]>([]);
 
     useEffect(() => {
         if (copiedItemId !== null) {
@@ -26,6 +27,11 @@ function Accordion({ data, onDelete }: AccordionProps) {
             return () => clearTimeout(timer);
         }
     }, [copiedItemId]);
+
+    useEffect(() => {
+        const sorted = [...data].sort((a,b) => b.id - a.id);
+        setSortedData(sorted);
+    }, [data]);
 
 
     const toggleAccordion = (id: number) => {
@@ -49,7 +55,7 @@ function Accordion({ data, onDelete }: AccordionProps) {
 
     return (
         <div className="accordion">
-            {data.map((item) => (
+            {sortedData.map((item) => (
                 <div key={item.id} className="accordion-item border rounded mb-2 overflow-hidden">
                     <button
                         className="accordion-button flex justify-between items-center w-full py-2 px-4 text-left focus:outline-none"
