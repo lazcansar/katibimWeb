@@ -76,6 +76,11 @@ function Accordion({ data, onDelete }: AccordionProps) {
                     <div
                         className={`accordion-content py-2 px-4 bg-gray-600 ${openItemId === item.id ? '' : 'hidden'}`}>
                         <p>{item.content}</p>
+
+                        <button
+                            className="px-4 py-1 mt-2 cursor-pointer bg-green-600 hover:bg-green-500 text-white rounded me-2">
+                            AI Kullan
+                        </button>
                         <button
                             className="px-4 py-1 mt-2 cursor-pointer bg-blue-500 text-white rounded hover:bg-blue-600"
                             onClick={() => copyToClipboard(item.content, item.id)}>
