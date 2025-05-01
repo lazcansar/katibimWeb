@@ -19,7 +19,6 @@ function Accordion({ data, onDelete, onUpdateContent }: AccordionProps) {
     const [copiedItemId, setCopiedItemId] = useState<number | null>(null);
     const [sortedData, setSortedData] = useState<AccordionItem[]>([]);
     const [processingItemId, setProcessingItemId] = useState<number | null>(null);
-    const [errorItemId, setErrorItemId] = useState<number | null>(null);
 
 
 
@@ -61,7 +60,6 @@ function Accordion({ data, onDelete, onUpdateContent }: AccordionProps) {
         if (processingItemId === id) return; // Zaten işleniyorsa tekrar tetikleme
 
         setProcessingItemId(id); // İşlem başladı (bu bileşenin state'i)
-        setErrorItemId(null); // Önceki hatayı temizle (bu bileşenin state'i)
 
         try {
             const response = await fetch('/api/ai/process-text', {
@@ -77,7 +75,9 @@ function Accordion({ data, onDelete, onUpdateContent }: AccordionProps) {
                 try {
                     const errorData = await response.json();
                     errorMsg = errorData.error || errorMsg;
-                } catch (e) { /* JSON parse edilemezse ilk mesajı kullan */ }
+                } catch (e) { 
+	console.warn("Yanıt JSON olarak parse edilemedi, hata yoksayılıyor:", e);
+				 }
                 throw new Error(errorMsg);
             }
 
@@ -94,7 +94,6 @@ function Accordion({ data, onDelete, onUpdateContent }: AccordionProps) {
 
         } catch (error) {
             console.error("AI işleme hatası:", error);
-            setErrorItemId(id); // Hata durumunu ayarla (bu bileşenin state'i)
         } finally {
             setProcessingItemId(null); // İşlem bitti (bu bileşenin state'i)
         }

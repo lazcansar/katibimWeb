@@ -10,7 +10,7 @@ const AccountPage = () => {
 
     useEffect(() => {
         async function checkSession() {
-            const {data: {session}, error } = await supabase.auth.getSession();
+            const {data: {session} } = await supabase.auth.getSession();
 
 
             if (!session) {
@@ -18,15 +18,15 @@ const AccountPage = () => {
                 return;
             }
 
-            setUserEmail(session.user.email);
+            setUserEmail(session.user.email ?? '');
         }
         checkSession();
-    }, [router]);
+    }, [router, setUserEmail]);
 
     const handleSignOut = async () => {
         const { error } = await supabase.auth.signOut();
         if (error) {
-            console.error("Çıkış yaparken hata:", error);
+            console.error("Çıkış yaparken hata");
         } else {
             router.push('/login');
         }

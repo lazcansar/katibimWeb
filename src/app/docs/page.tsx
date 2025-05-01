@@ -20,7 +20,7 @@ function Page() {
 
 
     const fetchData = async () => {
-        setLoading(true); // Yükleniyor durumunu true yap
+        setLoading(true);
         try {
             const { data, error } = await supabase.from('doc').select('id, title, content');
 
@@ -54,11 +54,11 @@ function Page() {
                 router.push('/login');
                 return;
             }
-            setUserEmail(session.user.email);
+            setUserEmail(session.user.email ?? '');
             fetchData();
         }
         checkSession();
-    }, [router]);
+    }, [router, error, setUserEmail]);
 
     const handleProfile = async () => {
         router.push('/account');

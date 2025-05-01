@@ -1,6 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
-import Image from "next/image";
+import { useState } from 'react';
 import { useRouter } from "next/navigation";
 import { supabase } from '@/app/utils/supabase';
 
@@ -12,17 +11,17 @@ const LoginPage = () => {
     const [error, setError] = useState<string | null>(null);
 
 
-    const handleLogin = async (e: React.FromEvent) => {
+    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
 
         try {
-            const { error, authError } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email, password
             });
 
-            if (authError) {
-                setError(authError.message);
+            if (error) {
+                setError(error.message);
             } else {
                 router.push('/docs');
             }
