@@ -59,13 +59,8 @@ function Page() {
         checkSession();
     }, [router]);
 
-    const handleSignOut = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error("Çıkış yaparken hata:", error);
-        }else {
-            router.push('/login');
-        }
+    const handleProfile = async () => {
+        router.push('/account');
     };
 
     const handleDeleteItem = async (id: number) => {
@@ -88,12 +83,12 @@ function Page() {
 
     return (
         <div>
-            <div className="bg-teal-800">
+            <div className="p-4 shadow-lg">
                 <div className="container mx-auto">
                     <div className="flex flex-col md:flex-row justify-between items-center text-white">
-                        <span className="block">Sisteme giriş yapan kullanıcı: <strong>{userEmail}</strong></span>
-                        <button onClick={handleSignOut} className="cursor-pointer bg-amber-900 transition hover:bg-amber-700 text-white py-1 px-4 text-black">
-                            Çıkış Yap
+                        <span className="block">Hesap: <strong>{userEmail}</strong></span>
+                        <button onClick={handleProfile} className="cursor-pointer bg-blue-700 transition hover:bg-blue-600 rounded text-white py-1 px-4 text-black">
+                            Hesabım
                         </button>
                     </div>
                 </div>

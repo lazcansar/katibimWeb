@@ -29,6 +29,8 @@ function Page() {
             if (!session) {
                 router.push('/login');
                 return;
+            } else {
+                router.push('/docs');
             }
             setUserEmail(session.user.email);
             fetchData();
