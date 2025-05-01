@@ -1,8 +1,9 @@
 "use client"
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import Accordion from "@/components/Accordion";
 import {supabase} from "@/app/utils/supabase";
+
+
 const AccountPage = () => {
     const [userEmail, setUserEmail] = useState('');
     const router = useRouter();
