@@ -124,7 +124,7 @@ function Accordion({ data, onDelete, onUpdateContent }: AccordionProps) {
 
                     <div
                         className={`accordion-content py-2 px-4 bg-gray-600 ${openItemId === item.id ? '' : 'hidden'}`}>
-                        <p>{item.content}</p>
+                        <p className="whitespace-pre-wrap mb-1">{item.content}</p>
 
                         <button
                             className={`px-4 py-1 mt-2 cursor-pointer bg-green-600 hover:bg-green-500 text-white rounded me-2 ${processingItemId === item.id ? 'opacity-50 cursor-not-allowed' : ''}`}
