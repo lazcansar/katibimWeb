@@ -11,6 +11,12 @@ const AccountPage = () => {
         async function checkSession() {
             const {data: {session}, error } = await supabase.auth.getSession();
 
+
+            if (!session) {
+                router.push('/login');
+                return;
+            }
+
             setUserEmail(session.user.email);
         }
         checkSession();
