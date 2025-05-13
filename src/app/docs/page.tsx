@@ -64,6 +64,10 @@ function Page() {
         router.push('/account');
     };
 
+    const handleSpeaking = async () => {
+        router.push('/speaking');
+    }
+
     const handleDeleteItem = async (id: number) => {
         setLoading(true);
         try {
@@ -119,6 +123,9 @@ function Page() {
                 <div className="container mx-auto">
                     <div className="flex flex-col md:flex-row justify-between items-center text-white">
                         <span className="block">Hesap: <strong>{userEmail}</strong></span>
+                        <button onClick={handleSpeaking} className="cursor-pointer bg-amber-700 transition hover:bg-amber-600 rounded text-white py-1 px-4 text-black">
+                            Dikte ile Yaz
+                        </button>
                         <button onClick={handleProfile} className="cursor-pointer bg-blue-700 transition hover:bg-blue-600 rounded text-white py-1 px-4 text-black">
                             Hesabım
                         </button>
