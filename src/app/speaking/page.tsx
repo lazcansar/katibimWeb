@@ -7,46 +7,47 @@ const DikteInput = () => {
     const [userEmail, setUserEmail] = useState('');
     const [title, setTitle] = useState('');
     const [inputText, setInputText] = useState('');
-    const [interimText, setInterimText] = useState(''); // New state for interim results
+    const [interimText, setInterimText] = useState(''); // Ara sonuçlar için yeni state
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState(null);
     const isManualStop = useRef(false);
     const router = useRouter();
 
+    // Bileşen yüklendiğinde kullanıcı oturumunu ve e-postasını kontrol et
     useEffect(() => {
         async function checkSession() {
             const { data: { session }, error } = await supabase.auth.getSession();
 
             if (error) {
                 console.error("Oturum bilgisi alınamadı:", error);
-                router.push('/login');
+                router.push('/login'); // Oturum alınamazsa login'e yönlendir
                 return;
             }
 
             if (!session) {
-                router.push('/login');
+                router.push('/login'); // Aktif oturum yoksa login'e yönlendir
                 return;
             }
             setUserEmail(session.user.email ?? '');
-            fetchData();
+            // fetchData(); // Önceki kodda tanımlı değildi, kaldırıldı
         }
         checkSession();
-    }, [setUserEmail, router]);
-
+        // router'ı bağımlılık dizisine ekle
+    }, [router]); // setUserEmail bağımlılığı genellikle gereksizdir
 
     useEffect(() => {
         if ('webkitSpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const newRecognition = new SpeechRecognition();
             newRecognition.lang = 'tr-TR';
-            newRecognition.interimResults = true; // Crucial for getting interim results
-            newRecognition.continuous = true;
+            newRecognition.interimResults = true; // Ara sonuçlar için true
+            newRecognition.continuous = true; // Kesintisiz dinleme için true (onend'de yeniden başlatma daha sağlam)
 
             newRecognition.onstart = () => {
                 console.log('Dikte başladı.');
                 setIsListening(true);
                 isManualStop.current = false;
-                setInterimText(''); // Clear interim text on start
+                setInterimText(''); // Başlangıçta ara metni temizle
             };
 
             newRecognition.onresult = (event) => {
@@ -61,39 +62,57 @@ const DikteInput = () => {
                     }
                 }
 
-                // Append final transcript to the main text area
+                // Nihai metni ana metin alanına ekle
                 if (finalTranscript) {
-                    setInputText((prevText) => prevText + finalTranscript + ' '); // Add a space after final results
+                    setInputText((prevText) => prevText + finalTranscript + ' '); // Nihai sonuçtan sonra boşluk ekle
+                    setInterimText(''); // Nihai metin alındığında ara metni temizle
                 }
 
-                // Display interim transcript separately
-                setInterimText(interimTranscript);
+                // Ara metni işle ve sadece son 10 kelimeyi göster
+                if (interimTranscript) {
+                    const words = interimTranscript.split(' '); // Metni kelimelere ayır
+                    if (words.length > 10) { // 10 kelime sınırı
+                        // Eğer 10'dan fazlaysa, son 10 kelimeyi al ve tekrar birleştir
+                        setInterimText(words.slice(-10).join(' '));
+                    } else {
+                        // 10 veya daha azsa, tamamını göster
+                        setInterimText(interimTranscript);
+                    }
+                } else if (!finalTranscript && isListening) {
+                    // Eğer ne nihai ne de ara metin varsa ve hala dinleniyorsa, ara alanı temizle (kısa duraklama veya başlangıç olabilir)
+                    setInterimText('');
+                }
             };
 
             newRecognition.onend = () => {
                 console.log('Dikte sona erdi.');
                 setIsListening(false);
-                setInterimText(''); // Clear interim text on end
-                // If not manually stopped, restart the recognition
+                setInterimText(''); // Bitişte ara metni temizle
+                // Manuel olarak durdurulmadıysa, tanımayı yeniden başlat
                 if (!isManualStop.current) {
-                    console.log('Automatically restarted dictation.');
-                    startDikte(); // Restart listening
+                    console.log('Dikte otomatik olarak yeniden başlatıldı.');
+                    // Ortam gürültülüyse anında yeniden bitmesini önlemek için küçük bir gecikme eklenebilir
+                    setTimeout(() => startDikte(), 100);
                 }
             };
 
             newRecognition.onerror = (event) => {
                 console.error('Dikte hatası:', event.error);
                 setIsListening(false);
-                setInterimText(''); // Clear interim text on error
-                if (!isManualStop.current) {
-                    console.log('Automatically restarting after error.');
-                    startDikte(); // Attempt to restart after error
+                setInterimText(''); // Hatada ara metni temizle
+                // event.error'a göre özel hata işleme eklenebilir.
+                // Örneğin, izin reddedilirse otomatik yeniden başlatma yapma.
+                if (!isManualStop.current && event.error !== 'not-allowed') {
+                    console.log('Hatadan sonra yeniden başlatılmaya çalışılıyor.');
+                    setTimeout(() => startDikte(), 100);
+                } else if (event.error === 'not-allowed') {
+                    alert("Mikrofon erişimi reddedildi. Lütfen tarayıcı ayarlarınızı kontrol edin.");
                 }
             };
 
             setRecognition(newRecognition);
 
-            // Clean up on unmount
+            // Bileşen unmount edildiğinde temizlik yap
             return () => {
                 if (newRecognition) {
                     newRecognition.stop();
@@ -109,7 +128,7 @@ const DikteInput = () => {
                 recognition.stop();
             }
         };
-    }, []);
+    }, []); // Bağımlılık dizisi boş, tanıma kurulumu bir kez çalışmalı
 
     const startDikte = () => {
         if (recognition && !isListening) {
@@ -119,7 +138,7 @@ const DikteInput = () => {
 
     const stopDikte = () => {
         if (recognition && isListening) {
-            isManualStop.current = true;
+            isManualStop.current = true; // Manuel durduruldu olarak işaretle
             recognition.stop();
         }
     };
@@ -128,27 +147,25 @@ const DikteInput = () => {
         setInputText(event.target.value);
     };
 
+    // Başlık inputu için işleyici
     const handleTitleChange = (event) => {
         setTitle(event.target.value);
     };
 
+
+    // Bileşen unmount edildiğinde tanımayı durdurmak için temizlik efekti
     useEffect(() => {
         return () => {
             if (recognition && isListening) {
                 recognition.stop();
-                console.log("Recognition stopped on unmount.");
+                console.log("Bileşen kaldırılırken tanıma durduruldu.");
             }
         };
+        // Bağımlılık dizisi, recognition veya isListening değişirse bu efektin yeniden çalışmasını sağlar
     }, [recognition, isListening]);
 
 
-    const backDocs = async () => {
-        router.push('/docs');
-    }
-
-
-
-
+    // Veriyi Supabase'e kaydetme fonksiyonu
     const handleSave = async () => {
         if (!userEmail) {
             alert("Kullanıcı oturumu bulunamadı. Lütfen tekrar giriş yapın.");
@@ -166,10 +183,11 @@ const DikteInput = () => {
             return;
         }
 
+        // user_email sütununu insert işlemine dahil et
         const { data, error } = await supabase
-            .from('doc') // Your table name
+            .from('doc') // Tablonuzun adı
             .insert([
-                { title: title, content: inputText },
+                { title: title, content: inputText }, // Eklenecek sütunlar
             ]);
 
         if (error) {
@@ -178,12 +196,16 @@ const DikteInput = () => {
         } else {
             console.log("Başarıyla kaydedildi:", data);
             alert("Metin başarıyla kaydedildi!");
-            // Optionally clear the inputs after saving
+            // İsteğe bağlı olarak kaydettikten sonra inputları temizle
             setTitle('');
             setInputText('');
         }
     };
 
+
+    const backDocs = async () => {
+        router.push('/docs');
+    }
 
     return (
         <>
@@ -220,17 +242,17 @@ const DikteInput = () => {
                     </button>
                 </div>
 
-                {/* Display interim results here */}
+                {/* Ara sonuçları burada göster */}
                 <div className="w-3/4 md:w-1/2 text-gray-400 text-center h-6">
                     {interimText}
                 </div>
 
                 <input
-                    className="border border-gray-300 rounded-md w-3/4 md:w-1/2 text-white p-2 bg-gray-800 focus:outline-none focus:border-blue-500"
+                    className="border border-gray-300 rounded-md w-3/4 md:w-1/2 text-white py-2 px-4 bg-gray-800 focus:outline-none focus:border-blue-500"
                     type="text"
                     placeholder="Başlık / Dosya No"
-                    value={title} // Bind value to the state
-                    onChange={handleTitleChange} // Add the change handler
+                    value={title} // Değeri state'e bağla
+                    onChange={handleTitleChange} // Değişiklik işleyicisini ekle
                 />
 
                 <textarea
@@ -243,8 +265,8 @@ const DikteInput = () => {
 
                 <button
                     className="border border-gray-700 px-6 py-2 bg-blue-600 rounded-md inline-block transition hover:bg-blue-500 cursor-pointer disabled:bg-gray-600"
-                    onClick={handleSave} // Attach the save function
-                    disabled={!userEmail || !title.trim() || !inputText.trim()} // Disable if required fields are empty
+                    onClick={handleSave} // Kaydetme fonksiyonunu bağla
+                    disabled={!userEmail || !title.trim() || !inputText.trim()} // Gerekli alanlar boşsa devre dışı bırak
                 >
                     Kaydet
                 </button>
