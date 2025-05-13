@@ -1,18 +1,10 @@
 "use client"
-import Accordion from "@/components/Accordion";
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { supabase } from '@/app/utils/supabase'
 import { useRouter } from "next/navigation";
 
-interface AccordionItem {
-    id: number;
-    title: string;
-    content: string;
-}
-
 
 function Page() {
-    const [userEmail, setUserEmail] = useState('');
     const router = useRouter();
 
 
@@ -32,8 +24,6 @@ function Page() {
             } else {
                 router.push('/docs');
             }
-            setUserEmail(session.user.email);
-            fetchData();
         }
         checkSession();
     }, [router]);

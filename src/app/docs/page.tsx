@@ -16,10 +16,11 @@ function Page() {
     const router = useRouter();
     const [accordionData, setAccordionData] = useState<AccordionItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
 
     const fetchData = async () => {
-        setLoading(true); // Yükleniyor durumunu true yap
+        setLoading(true);
         try {
             const { data, error } = await supabase.from('doc').select('id, title, content');
 
@@ -53,11 +54,11 @@ function Page() {
                 router.push('/login');
                 return;
             }
-            setUserEmail(session.user.email);
+            setUserEmail(session.user.email ?? '');
             fetchData();
         }
         checkSession();
-    }, [router]);
+    }, [router, error, setUserEmail]);
 
     const handleProfile = async () => {
         router.push('/account');
@@ -79,7 +80,38 @@ function Page() {
         }
     };
 
+    const handleUpdateAccordionContent = async (id: number, newContent: string) => {
+        const originalData = [...accordionData];
+        // Optimistic UI: Önce state'i güncelle
+        setAccordionData(prevData =>
+            prevData.map(item =>
+                item.id === id ? { ...item, content: newContent } : item
+            )
+        );
+        setError(null); // Önceki hatayı temizle
 
+        try {
+            setLoading(true); // İşlem başladığında
+            const { error: updateError } = await supabase
+                .from('doc')
+                .update({ content: newContent /*, updated_at: new Date()*/ }) // updated_at eklenebilir
+                .eq('id', id);
+
+            if (updateError) {
+                console.error("Supabase güncelleme hatası:", updateError);
+                setError(`Öğe (ID: ${id}) güncellenirken hata oluştu.`);
+                // Hata durumunda state'i geri al
+                setAccordionData(originalData);
+            }
+            // Başarılıysa state zaten güncel
+        } catch (catchError) {
+            console.error("Supabase güncelleme sırasında beklenmeyen hata:", catchError);
+            setError("Beklenmeyen bir güncelleme hatası oluştu.");
+            setAccordionData(originalData); // Hata durumunda state'i geri al
+        } finally {
+            setLoading(false); // İşlem bittiğinde
+        }
+    };
 
     return (
         <div>
@@ -102,7 +134,11 @@ function Page() {
                 >
                     {loading ? 'Yükleniyor...' : 'Yeni Kayıtları Getir'}
                 </button>
-                <Accordion data={accordionData} onDelete={handleDeleteItem} />
+                <Accordion
+                    data={accordionData}
+                    onDelete={handleDeleteItem}
+                    onUpdateContent={handleUpdateAccordionContent}
+                />
             </div>
 
         </div>
