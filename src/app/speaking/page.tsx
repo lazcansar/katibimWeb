@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, ChangeEvent } from 'react'
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/utils/supabase";
 
@@ -9,10 +9,14 @@ const DikteInput = () => {
     const [inputText, setInputText] = useState('');
     const [interimText, setInterimText] = useState(''); // Ara sonuçlar için yeni state
     const [isListening, setIsListening] = useState(false);
-    const [recognition, setRecognition] = useState(null);
+    const isListeningRef = useRef(isListening);
+    const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const isManualStop = useRef(false);
     const router = useRouter();
 
+    useEffect(() => {
+        isListeningRef.current = isListening;
+    }, [isListening]);
     // Bileşen yüklendiğinde kullanıcı oturumunu ve e-postasını kontrol et
     useEffect(() => {
         async function checkSession() {
@@ -36,21 +40,25 @@ const DikteInput = () => {
     }, [router]); // setUserEmail bağımlılığı genellikle gereksizdir
 
     useEffect(() => {
-        if ('webkitSpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const newRecognition = new SpeechRecognition();
-            newRecognition.lang = 'tr-TR';
-            newRecognition.interimResults = true; // Ara sonuçlar için true
-            newRecognition.continuous = true; // Kesintisiz dinleme için true (onend'de yeniden başlatma daha sağlam)
+        if (typeof window === 'undefined') {
+            return; // Sunucu tarafında veya window tanımlı değilse hiçbir şey yapma
+        }
+        const BrowserSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-            newRecognition.onstart = () => {
+        if (BrowserSpeechRecognition) { // HATA ÇÖZÜMÜ: BrowserSpeechRecognition'ın varlığını kontrol et
+            const newRecognitionInstance = new BrowserSpeechRecognition();
+            newRecognitionInstance.lang = 'tr-TR';
+            newRecognitionInstance.interimResults = true;
+            newRecognitionInstance.continuous = true; // Sürekli dinleme için true
+
+            newRecognitionInstance.onstart = () => {
                 console.log('Dikte başladı.');
                 setIsListening(true);
                 isManualStop.current = false;
-                setInterimText(''); // Başlangıçta ara metni temizle
+                setInterimText('');
             };
 
-            newRecognition.onresult = (event) => {
+            newRecognitionInstance.onresult = (event: SpeechRecognitionEvent) => { // Event tipini ekledik
                 let interimTranscript = '';
                 let finalTranscript = '';
 
@@ -62,93 +70,104 @@ const DikteInput = () => {
                     }
                 }
 
-                // Nihai metni ana metin alanına ekle
                 if (finalTranscript) {
-                    setInputText((prevText) => prevText + finalTranscript + ' '); // Nihai sonuçtan sonra boşluk ekle
-                    setInterimText(''); // Nihai metin alındığında ara metni temizle
+                    setInputText((prevText) => prevText + finalTranscript + ' ');
+                    setInterimText('');
                 }
 
-                // Ara metni işle ve sadece son 10 kelimeyi göster
                 if (interimTranscript) {
-                    const words = interimTranscript.split(' '); // Metni kelimelere ayır
-                    if (words.length > 10) { // 10 kelime sınırı
-                        // Eğer 10'dan fazlaysa, son 10 kelimeyi al ve tekrar birleştir
-                        setInterimText(words.slice(-10).join(' '));
-                    } else {
-                        // 10 veya daha azsa, tamamını göster
-                        setInterimText(interimTranscript);
-                    }
-                } else if (!finalTranscript && isListening) {
-                    // Eğer ne nihai ne de ara metin varsa ve hala dinleniyorsa, ara alanı temizle (kısa duraklama veya başlangıç olabilir)
+                    const words = interimTranscript.split(' ');
+                    setInterimText(words.slice(-10).join(' '));
+                } else if (!finalTranscript && isListeningRef.current) {
                     setInterimText('');
                 }
             };
 
-            newRecognition.onend = () => {
+            const attemptRestart = () => {
+                // newRecognitionInstance'ın hala var olduğundan ve dinlemediğinden emin ol
+                if (!isManualStop.current && newRecognitionInstance && !isListeningRef.current) {
+                    console.log('Dikte otomatik olarak yeniden başlatılıyor (attemptRestart).');
+                    try {
+                        if (!isListeningRef.current) { // Ekstra kontrol
+                            newRecognitionInstance.start();
+                        }
+                    } catch (error) {
+                        console.error("Yeniden başlatma sırasında hata:", error);
+                        // Belki burada setIsListening(false) tekrar çağrılmalı veya kullanıcıya bilgi verilmeli
+                    }
+                }
+            };
+
+            newRecognitionInstance.onend = () => {
                 console.log('Dikte sona erdi.');
                 setIsListening(false);
-                setInterimText(''); // Bitişte ara metni temizle
-                // Manuel olarak durdurulmadıysa, tanımayı yeniden başlat
+                setInterimText('');
                 if (!isManualStop.current) {
-                    console.log('Dikte otomatik olarak yeniden başlatıldı.');
-                    // Ortam gürültülüyse anında yeniden bitmesini önlemek için küçük bir gecikme eklenebilir
-                    setTimeout(() => startDikte(), 100);
+                    console.log('Dikte otomatik olarak yeniden başlatılacak (onend).');
+                    setTimeout(attemptRestart, 100);
                 }
             };
 
-            newRecognition.onerror = (event) => {
+            newRecognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => { // Event tipini ekledik
                 console.error('Dikte hatası:', event.error);
                 setIsListening(false);
-                setInterimText(''); // Hatada ara metni temizle
-                // event.error'a göre özel hata işleme eklenebilir.
-                // Örneğin, izin reddedilirse otomatik yeniden başlatma yapma.
-                if (!isManualStop.current && event.error !== 'not-allowed') {
+                setInterimText('');
+                if (!isManualStop.current && event.error !== 'not-allowed' && event.error !== 'aborted') {
                     console.log('Hatadan sonra yeniden başlatılmaya çalışılıyor.');
-                    setTimeout(() => startDikte(), 100);
+                    setTimeout(attemptRestart, 100);
                 } else if (event.error === 'not-allowed') {
-                    alert("Mikrofon erişimi reddedildi. Lütfen tarayıcı ayarlarınızı kontrol edin.");
+                    // alert yerine daha kullanıcı dostu bir bildirim gösterilebilir
+                    console.warn("Mikrofon erişimi reddedildi. Lütfen tarayıcı ayarlarınızı kontrol edin.");
+                    // Örnek: setNotification("Mikrofon erişimi reddedildi...");
+                } else if (event.error === 'aborted') {
+                    console.log('Dikte kullanıcı tarafından veya otomatik olarak durduruldu (aborted).');
+                    // Manuel durdurma değilse ve sürekli dinleme isteniyorsa yeniden başlatılabilir.
+                    // Ancak 'aborted' genellikle stop() çağrıldığında veya bazen ağ sorunlarında tetiklenir.
+                    // isManualStop.current kontrolü burada önemli.
+                    if (!isManualStop.current) {
+                        setTimeout(attemptRestart, 100); // Otomatik durdurulduysa yeniden başlatmayı dene
+                    }
                 }
             };
 
-            setRecognition(newRecognition);
+            setRecognition(newRecognitionInstance);
 
-            // Bileşen unmount edildiğinde temizlik yap
             return () => {
-                if (newRecognition) {
-                    newRecognition.stop();
+                if (newRecognitionInstance) {
+                    isManualStop.current = true; // Temizlik sırasında manuel durdurma olarak işaretle
+                    newRecognitionInstance.stop();
+                    console.log("Ana useEffect temizlenirken tanıma durduruldu.");
                 }
             };
 
         } else {
             console.log('Tarayıcınız dikte özelliğini desteklemiyor.');
+            // Kullanıcıya bu durumu bildiren bir UI elemanı gösterilebilir.
+            // setNotification("Tarayıcınız dikte özelliğini desteklemiyor.");
         }
 
-        return () => {
-            if (recognition) {
-                recognition.stop();
-            }
-        };
     }, []); // Bağımlılık dizisi boş, tanıma kurulumu bir kez çalışmalı
 
     const startDikte = () => {
         if (recognition && !isListening) {
+            isManualStop.current = false; // Yeniden başlatırken manuel durdurma olmadığını belirt
             recognition.start();
         }
     };
 
     const stopDikte = () => {
         if (recognition && isListening) {
-            isManualStop.current = true; // Manuel durduruldu olarak işaretle
+            isManualStop.current = true;
             recognition.stop();
         }
     };
 
-    const handleInputChange = (event) => {
+    const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
         setInputText(event.target.value);
     };
 
     // Başlık inputu için işleyici
-    const handleTitleChange = (event) => {
+    const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
         setTitle(event.target.value);
     };
 
@@ -257,7 +276,7 @@ const DikteInput = () => {
 
                 <textarea
                     className="border border-gray-300 rounded-md w-3/4 md:w-1/2 text-white p-4 bg-gray-800 focus:outline-none focus:border-blue-500"
-                    rows="8"
+                    rows={8}
                     value={inputText}
                     onChange={handleInputChange}
                     placeholder="Buraya dikte edilecek metin gelecek..."
@@ -271,9 +290,6 @@ const DikteInput = () => {
                     Kaydet
                 </button>
 
-                {!('webkitSpeechRecognition' in window) && (
-                    <p className="text-red-500">Tarayıcınız bu özelliği desteklemiyor.</p>
-                )}
             </div>
         </>
     );

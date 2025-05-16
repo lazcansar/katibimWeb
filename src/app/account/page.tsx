@@ -26,7 +26,7 @@ const AccountPage = () => {
     const handleSignOut = async () => {
         const { error } = await supabase.auth.signOut();
         if (error) {
-            console.error("Çıkış yaparken hata");
+            console.error(error.message);
         } else {
             router.push('/login');
         }

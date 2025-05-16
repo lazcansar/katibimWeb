@@ -64,10 +64,6 @@ function Page() {
         router.push('/account');
     };
 
-    const handleSpeaking = async () => {
-        router.push('/speaking');
-    }
-
     const handleDeleteItem = async (id: number) => {
         setLoading(true);
         try {
@@ -116,6 +112,10 @@ function Page() {
             setLoading(false); // İşlem bittiğinde
         }
     };
+
+    const handleSpeaking = async () => {
+        router.push('/speaking');
+    }
 
     return (
         <div>
