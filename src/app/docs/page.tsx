@@ -121,7 +121,7 @@ function Page() {
         <div>
             <div className="p-4 shadow-lg">
                 <div className="container mx-auto">
-                    <div className="flex flex-col md:flex-row justify-between items-center text-white">
+                    <div className="flex flex-col sm:flex-row justify-between items-center text-white">
                         <span className="block">Hesap: <strong>{userEmail}</strong></span>
                         <button onClick={handleSpeaking} className="cursor-pointer bg-amber-700 transition hover:bg-amber-600 rounded text-white py-1 px-4 text-black">
                             Dikte ile Yaz
@@ -133,7 +133,7 @@ function Page() {
                 </div>
             </div>
 
-            <div className="container mx-auto my-8 text-white">
+            <div className="container mx-auto my-8 text-white px-4">
                 <button
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mb-4 cursor-pointer"
                     onClick={fetchData}
