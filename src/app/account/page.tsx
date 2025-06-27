@@ -35,6 +35,9 @@ const AccountPage = () => {
     const backDocs = async () => {
         router.push('/docs');
     }
+    const templatePage = async () => {
+        router.push('/template-text');
+    }
 
     return (
         <>
@@ -53,7 +56,7 @@ const AccountPage = () => {
                 E-Mail Adresiniz: {userEmail}
             </div>
             <div className="my-2 flex gap-2">
-                <button className="cursor-pointer bg-blue-600 transition hover:bg-blue-500 text-white py-2 px-4 rounded inline-block">Şablon Oluştur</button>
+                <button onClick={templatePage} className="cursor-pointer bg-blue-600 transition hover:bg-blue-500 text-white py-2 px-4 rounded inline-block">Şablon Oluştur</button>
                 <button onClick={handleSignOut}
                         className="cursor-pointer bg-green-700 transition hover:bg-green-800 text-white py-2 px-4 rounded inline-block">
                     Çıkış Yap
