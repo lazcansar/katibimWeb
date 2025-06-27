@@ -54,10 +54,6 @@ const AccountPage = () => {
             </div>
             <div className="my-2 flex gap-2">
                 <button onClick={handleSignOut}
-                        className="cursor-pointer bg-blue-700 transition hover:bg-blue-800 text-white py-2 px-4 rounded inline-block">
-                    Şifre Değiştir
-                </button>
-                <button onClick={handleSignOut}
                         className="cursor-pointer bg-green-700 transition hover:bg-green-800 text-white py-2 px-4 rounded inline-block">
                     Çıkış Yap
                 </button>
