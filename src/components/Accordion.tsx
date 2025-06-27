@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
+import { Document, Paragraph, TextRun, Packer, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface AccordionItem {
     id: number;
@@ -130,6 +132,32 @@ function Accordion({ data, onDelete, onUpdateContent }: AccordionProps) {
         }).save();
     };
 
+    const downloadAsWord = async (item: AccordionItem) => {
+
+        const doc = new Document({
+            sections: [{
+                children: [
+
+                    new Paragraph({
+                        text: item.title,
+                        heading: HeadingLevel.HEADING_1,
+                        spacing: { after: 200 },
+                    }),
+
+                    ...item.content.split('\n').map(line => new Paragraph({
+                        children: [new TextRun(line)],
+                        spacing: { after: 100 },
+                    })),
+                ],
+            }],
+        });
+
+
+        const blob = await Packer.toBlob(doc);
+
+        saveAs(blob, `${item.title.replace(/\s/g, '_')}.docx`);
+    };
+
 
 
     return (
@@ -185,6 +213,11 @@ function Accordion({ data, onDelete, onUpdateContent }: AccordionProps) {
                             <button className="px-4 py-1 mt-2 cursor-pointer bg-amber-600 text-white rounded hover:bg-amber-500 ms-2"
                                     onClick={() => downloadAsPdf(item)}>
                                 PDF Olarak İndir
+                            </button>
+
+                            <button className="px-4 py-1 mt-2 cursor-pointer bg-amber-600 text-white rounded hover:bg-amber-500 ms-2"
+                                    onClick={() => downloadAsWord(item)}>
+                                Word Olarak İndir
                             </button>
 
                             <button
